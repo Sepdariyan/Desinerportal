@@ -1,57 +1,39 @@
+// src/app/docs/[id]/page.tsx
 import Link from "next/link";
-import { notFound } from "next/navigation";
-// Kalau kamu belum punya data asli, import ini boleh dihapus.
-// Pastikan file ini ada. Kalau belum, abaikan import dan adjust di bawah.
 import { docs } from "@/lib/knowledge";
 
-type Params = { id: string };
-
-function getDocById(id: string) {
-  try {
-    // Jika kamu punya DB/array docs, akses di sini.
-    // Sesuaikan field id/slug sesuai data kamu.
-    return (docs ?? []).find((d: any) => d.id === id || d.slug === id) ?? null;
-  } catch {
-    return null;
-  }
+// (opsional) pre-generate semua halaman docs
+export function generateStaticParams() {
+  return docs.map((d) => ({ id: d.id }));
 }
 
-export default function DocPage({ params }: { params: Params }) {
-  const { id } = params; // TIDAK pakai await di sini
+// Perhatikan: params sekarang bertipe Promise<{ id: string }>
+export default async function DocPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
 
-  const doc = getDocById(id);
-
-  if (!doc) {
-    // Kalau tidak ketemu, tampilkan fallback yang rapi
+  const d = docs.find((x) => x.id === id);
+  if (!d) {
     return (
-      <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-xl font-semibold">Dokumen tidak ditemukan</h1>
-        <p className="mt-2 text-slate-500">ID: {id}</p>
-        <Link href="/" className="text-teal-600 underline mt-4 inline-block">
-          ← Kembali ke beranda
-        </Link>
-      </div>
+      <main className="mx-auto max-w-3xl p-8">
+        <p className="text-sm opacity-70">
+          Tidak ditemukan. <Link href="/">Kembali</Link>
+        </p>
+      </main>
     );
   }
 
   return (
-    <article className="prose dark:prose-invert mx-auto p-6">
-      <h1>{doc.title}</h1>
-      {doc.topics?.length ? (
-        <p className="text-sm text-slate-500">{doc.topics.join(" • ")}</p>
-      ) : null}
-      <div className="mt-6 whitespace-pre-wrap">
-        {doc.content ?? "Belum ada konten."}
-      </div>
-    </article>
+    <main className="mx-auto max-w-3xl p-8 prose">
+      <p className="text-sm"><Link href="/">← Kembali</Link></p>
+      <h1>{d.title}</h1>
+      <p className="text-sm opacity-70">
+        {d.topics.join(", ")} • {d.minutes} min
+      </p>
+      <div className="mt-6 whitespace-pre-wrap">{d.content}</div>
+    </main>
   );
-}
-
-// Opsional: supaya SSG bisa generate halaman detail (aman walau docs kosong)
-export function generateStaticParams() {
-  try {
-    return (docs ?? []).map((d: any) => ({ id: d.id }));
-  } catch {
-    return [];
-  }
 }
